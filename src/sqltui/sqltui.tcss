@@ -1,0 +1,35 @@
+#input_query {
+    height: 30;
+}
+
+LeftPanel {
+    padding: 1;
+}
+
+RightPanel {
+    padding: 1;
+}
+
+#query_header {
+    text-align: center;
+}
+
+#result_header {
+    text-align: center;
+}
+
+#run {
+    margin: 1;
+}
+
+#clear {
+    margin: 1;
+}
+
+#exit {
+    margin: 1;
+}
+
+Vertical {
+    content-align: center middle;
+}

@@ -1,0 +1,24 @@
+[project]
+name = "sqltui"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.3.3",
+    "pyodps>=0.12.5",
+    "python-dotenv>=1.2.1",
+    "textual[syntax]>=6.6.0",
+]
+
+[dependency-groups]
+dev = [
+    "textual-dev>=1.8.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+sqltui = "sqltui.__main__:main"
