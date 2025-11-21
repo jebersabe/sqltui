@@ -167,4 +167,4 @@ You can then modify the app code and see changes reflected live while the dev se
 
 ## License
 
-MIT
+Apache
