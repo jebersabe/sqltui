@@ -2,7 +2,7 @@ from textual import on
 import pandas as pd
 import multiprocessing
 from textual.app import App, ComposeResult
-from textual.widgets import Footer, Header, TextArea, DataTable, Button, Select
+from textual.widgets import Footer, Static, TextArea, DataTable, Button, Select
 from textual.containers import Horizontal, Vertical, VerticalScroll, HorizontalGroup
 from sqltui.backend import odps_from_env, load_config
 import logging
@@ -51,7 +51,7 @@ class SqlTUI(App):
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
         with Vertical():
-            yield Header()
+            yield Static("SQLTUI", id="header")
             yield Select(self.project_options, id="select_project")
             with Horizontal(id="main_area"):
                 yield LeftPanel(id="left_panel")
@@ -179,6 +179,9 @@ class SqlTUI(App):
     @on(Select.Changed, "#select_project")
     def select_changed(self, event: Select.Changed) -> None:
         self.selected_project = str(event.value)
+        if event.value == Select.BLANK:
+            self.app.notify("No project selected", title="INFO", severity="info")
+            return
 
         match_projects = [
             project

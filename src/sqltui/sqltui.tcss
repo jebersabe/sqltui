@@ -1,12 +1,12 @@
 $heavy-border: heavy $primary;
 
-Header {
+#header {
   dock: top;
   height: 1;
-  content-align: center middle;
   color: $primary;
   text-style: bold;
-  text-align: left;
+  text-align: center;
+  margin: 1 1 0 1;
 }
 
 #input_query {
@@ -17,7 +17,7 @@ Header {
 
 LeftPanel {
     padding: 1;
-	margin: 2;
+    margin: 1 2 2 2;
 	border: $heavy-border;
 	border_title_align: left;
     height: 100%;
@@ -25,7 +25,7 @@ LeftPanel {
 
 DataTable {
     padding: 1;
-	margin: 2;
+    margin: 1 2 2 2;
 	border: $heavy-border;
 	border_title_align: left;
     height: 100%;
@@ -48,8 +48,9 @@ DataTable {
 }
 
 #select_project {
+    height: 5;
     width: 100%;
-    margin: 2;
+    margin: 1 2 0 2;
     border: $heavy-border;
     border_title_align: left;
 }
