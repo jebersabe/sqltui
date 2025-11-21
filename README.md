@@ -1,166 +1,170 @@
-# SqlTUI
+# sqltui
 
-A terminal-based SQL query interface built with [Textual](https://textual.textualize.io/), designed for interactive querying of Alibaba Cloud MaxCompute (ODPS) databases.
+A terminal-based SQL client for Alibaba Cloud MaxCompute (ODPS) built with [Textual](https://github.com/Textualize/textual). It provides a split-pane TUI for writing SQL, running queries, and exploring table partitions across multiple configured projects.
 
 ## Features
 
-- **Interactive SQL Editor**: Code editor with SQL syntax highlighting
-- **Real-time Results**: Execute queries and view results in a data table
-- **Dark/Light Mode**: Toggle between themes for comfortable viewing
-- **Keyboard Shortcuts**: Efficient query execution with `Ctrl+Enter`
-- **Multi-process Data Loading**: Utilizes multiprocessing for faster data retrieval
-- **Clean Interface**: Intuitive split-panel layout with query input and result display
+- Textual-based TUI with a query editor and results table
+- Project selector backed by a YAML config file
+- Execution of SQL queries against MaxCompute / ODPS
+- Display of query results in a scrollable table
+- Quick partition inspection for a given table
+- Keyboard shortcuts for common actions (run, clear, check partitions)
 
-## Screenshot
+## Requirements
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│ Query                           │ Result                    │
-│ ┌─────────────────────┐         │ ┌───────────────────────┐ │
-│ │ SELECT * FROM ...   │         │ │ col1  │ col2  │ col3  │ │
-│ │                     │         │ ├───────┼───────┼───────┤ │
-│ │                     │         │ │ data  │ data  │ data  │ │
-│ └─────────────────────┘         │ └───────────────────────┘ │
-│ [Run] [Clear] [Exit]            │                           │
-└─────────────────────────────────────────────────────────────┘
-```
+- Python >= 3.11
+- An Alibaba Cloud MaxCompute (ODPS) environment
+- Valid ODPS credentials available as environment variables
+- A `config.yaml` file in the project root defining available projects
+
+The core dependencies (managed via `pyproject.toml`) include:
+
+- `textual[syntax]`
+- `pandas`
+- `pyodps`
+- `python-dotenv`
+- `pyyaml`
 
 ## Installation
 
-### Prerequisites
+This project is set up for use with [uv](https://github.com/astral-sh/uv) and standard PEP 621 metadata.
 
-- Python 3.11 or higher
-- Alibaba Cloud MaxCompute account with credentials
+### Option 1: Install as a package
 
-### Install from source
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd sqltui
-
-# Install the package
-pip install -e .
-```
-
-### Install dependencies
+From the project root:
 
 ```bash
-pip install sqltui
+uv sync
+uv run sqltui
 ```
+
+This will install dependencies and run the `sqltui` entry point defined in `pyproject.toml`.
+
+### Option 2: Run directly with Textual dev
+
+From the project root, in development mode:
+
+```bash
+uv sync
+uv run textual run --dev src/sqltui/__main__.py
+```
+
+This runs the app with Textual's dev tools (hot reload, debug console, etc.).
 
 ## Configuration
 
-SqlTUI requires environment variables to connect to your MaxCompute instance. Create a `.env` file in your project directory:
+Two configuration layers are used:
+
+1. **Environment variables** for ODPS credentials
+2. **`config.yaml`** for project definitions
+
+### Environment variables
+
+Credentials are loaded via `python-dotenv`, so you can either export them in your shell or define them in a `.env` file at the project root.
+
+For each project, the `config.yaml` refers to keys that are the *names* of the environment variables storing the actual secrets. For example:
+
+- `access_key`: the name of the env var holding the ODPS access ID (e.g. `ODPS_ACCESS_ID_DEV`)
+- `secret_key`: the name of the env var holding the ODPS secret key (e.g. `ODPS_ACCESS_KEY_DEV`)
+
+Example `.env` file:
 
 ```env
-ODPS_ID=your_access_id
-ODPS_SECRET=your_secret_access_key
-ODPS_PROJECT=your_project_name
+ODPS_ACCESS_ID_DEV=your_access_id_here
+ODPS_ACCESS_KEY_DEV=your_secret_here
+ODPS_ACCESS_ID_PROD=your_access_id_here
+ODPS_ACCESS_KEY_PROD=your_secret_here
 ```
 
-Alternatively, set these environment variables in your shell:
+### `config.yaml`
 
-```bash
-export ODPS_ID="your_access_id"
-export ODPS_SECRET="your_secret_access_key"
-export ODPS_PROJECT="your_project_name"
+The app expects a `config.yaml` in the project root directory. It must contain a top-level `projects` list. Each project entry should have at least:
+
+- `name`: ODPS project name (also the label in the TUI project selector)
+- `access_key`: env var name for the access ID
+- `secret_key`: env var name for the secret key
+
+Example `config.yaml`:
+
+```yaml
+projects:
+  - name: dev_project
+    access_key: ODPS_ACCESS_ID_DEV
+    secret_key: ODPS_ACCESS_KEY_DEV
+  - name: prod_project
+    access_key: ODPS_ACCESS_ID_PROD
+    secret_key: ODPS_ACCESS_KEY_PROD
 ```
 
-**Note**: The default endpoint is configured for the Asia Pacific Southeast 1 region (`https://service.ap-southeast-1.maxcompute.aliyun.com/api`). You can modify this in `backend.py` if you need a different region.
+If `config.yaml` is missing, the app will log an error and raise a `FileNotFoundError` on startup.
 
 ## Usage
 
-### Launch the application
+Once installed and configured:
 
 ```bash
-sqltui
+uv run sqltui
 ```
 
-Or run directly with Python:
+### Layout
 
-```bash
-python -m sqltui
-```
+- **Top bar**: Textual header and a project selector (`Select`) showing the configured projects.
+- **Left panel**: SQL query editor (`TextArea`) with syntax highlighting.
+- **Bottom of left panel**: Action buttons: `Run`, `Check Partitions`, `Clear`, and `Exit`.
+- **Right panel**: Results table (`DataTable`) showing query results or partition lists.
+- **Bottom bar**: Textual footer with helpful key binding hints.
 
-### Keyboard Shortcuts
+### Keyboard shortcuts
 
-- `Ctrl+Enter` - Execute the current query
-- `d` - Toggle dark/light mode
-- `q` - Quit the application
+- `Ctrl+Enter` — Run current query
+- `Ctrl+T` — Check partitions for the given table
+- `Ctrl+L` — Clear the query editor
 
-### Button Actions
+### Actions
 
-- **Run** - Execute the SQL query in the editor
-- **Clear** - Clear the query editor
-- **Exit** - Close the application
+- **Selecting a project**: Use the dropdown at the top to choose an ODPS project. The app uses the corresponding credentials to create an `ODPS` client.
+- **Running a query**:
+  - Type (or paste) a SQL query into the left-hand editor.
+  - Press `Ctrl+Enter` or click **Run**.
+  - Results will be loaded into the right-hand `DataTable`.
+- **Checking partitions**:
+  - Enter a table name (e.g. `my_db.my_table`) in the editor.
+  - Press `Ctrl+T` or click **Check Partitions**.
+  - The app checks if the table exists and then lists its partitions in the results panel.
+- **Clearing**: Press `Ctrl+L` or click **Clear** to clear the editor.
+- **Exiting**: Click **Exit** or close the terminal window.
+
+### Error handling
+
+- If no project is selected when you try to run a query, the app shows an in-app warning notification.
+- Most ODPS-related issues (invalid credentials, connectivity, missing tables) are caught and displayed as error notifications with truncated messages.
 
 ## Development
 
-### Install development dependencies
+The main application class is `SqlTUI` in `src/sqltui/main.py`. Supporting pieces include:
+
+- `src/sqltui/__main__.py` — entry point for the Textual app and the `sqltui` console script.
+- `src/sqltui/backend.py` — helpers for creating an `ODPS` instance from environment variables and loading YAML config.
+- `src/sqltui/sqltui.tcss` — Textual CSS theme and layout configuration.
+
+### Running in dev mode
+
+From the project root:
 
 ```bash
-pip install -e ".[dev]"
+uv run textual run --dev src/sqltui/__main__.py
 ```
 
-### Run in development mode
-
-For hot-reloading during development:
-
-```bash
-textual run --dev src/sqltui/main.py:SqlTUI
-```
-
-### Project Structure
-
-```
-sqltui/
-├── src/
-│   └── sqltui/
-│       ├── __init__.py
-│       ├── __main__.py      # Entry point
-│       ├── main.py          # Main application and UI components
-│       ├── backend.py       # ODPS connection handling
-│       └── sqltui.tcss      # Textual CSS styling
-├── pyproject.toml           # Project configuration
-└── README.md
-```
-
-## Dependencies
-
-- **textual[syntax]** - Terminal UI framework with syntax highlighting
-- **pyodps** - Python SDK for Alibaba Cloud MaxCompute
-- **pandas** - Data manipulation and analysis
-- **python-dotenv** - Environment variable management
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit issues or pull requests.
-
-## License
-
-[Add your license here]
-
-## Acknowledgments
-
-Built with [Textual](https://textual.textualize.io/) by Textualize.io
+You can then modify the app code and see changes reflected live while the dev server is running.
 
 ## Troubleshooting
 
-### Connection Issues
+- **`config.yaml not found`**: Ensure that `config.yaml` exists in the project root and matches the expected schema shown above.
+- **Credentials not working**: Confirm that the env var names in `config.yaml` match actual variables set in your shell or `.env` file.
+- **No projects populated in the selector**: Check that `projects` is a non-empty list in `config.yaml` and that YAML indentation is correct.
+- **Connection/ODPS errors**: Inspect the terminal logs and in-app notifications for the underlying `pyodps` error messages.
 
-- Verify your ODPS credentials are correct
-- Check that your `.env` file is in the correct location
-- Ensure you have network access to the MaxCompute endpoint
+## License
 
-### Query Errors
-
-- Error messages will appear as notifications in the UI
-- Check that your SQL syntax is compatible with MaxCompute
-- Verify you have the necessary permissions for the query
-
-### Performance
-
-- Large result sets may take time to load
-- The application uses multiprocessing to optimize data retrieval
-- Consider limiting result sets with `LIMIT` clauses for faster response
+MIT

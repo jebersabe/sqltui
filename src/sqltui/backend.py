@@ -1,12 +1,13 @@
+import yaml
 import os
 from odps import ODPS
 from dotenv import load_dotenv
 
 
 def odps_from_env(
-    id_key="ODPS_ID",
-    secret_key="ODPS_SECRET",
-    project_key="ODPS_PROJECT",
+    id_key,
+    secret_key,
+    project,
     endpoint="https://service.ap-southeast-1.maxcompute.aliyun.com/api",
 ):
     """
@@ -33,6 +34,11 @@ def odps_from_env(
     return ODPS(
         os.getenv(id_key),
         os.getenv(secret_key),
-        os.getenv(project_key),
+        project,
         endpoint=endpoint,
     )
+
+
+def load_config(config_path: str) -> ODPS:
+    with open(config_path, "r") as file:
+        return yaml.safe_load(file)

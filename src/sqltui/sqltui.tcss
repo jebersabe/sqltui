@@ -1,21 +1,25 @@
+$heavy-border: heavy $primary;
+
 #input_query {
-    height: 30;
+    height: auto;
+    min-height: 30;
+	border: round $secondary;
 }
 
 LeftPanel {
     padding: 1;
+	margin: 2;
+	border: $heavy-border;
+	border_title_align: left;
+    height: 100%;
 }
 
 RightPanel {
     padding: 1;
-}
-
-#query_header {
-    text-align: center;
-}
-
-#result_header {
-    text-align: center;
+	margin: 2;
+	border: $heavy-border;
+	border_title_align: left;
+    height: 100%;
 }
 
 #run {
@@ -30,6 +34,25 @@ RightPanel {
     margin: 1;
 }
 
+#check_pt {
+    margin: 1;
+}
+
+#select_project {
+    width: 20%;
+    margin: 2;
+    border: $heavy-border;
+    border_title_align: left;
+}
+
 Vertical {
     content-align: center middle;
+}
+
+ButtomButtons {
+    align: center middle;
+}
+
+Button:hover {
+  outline: $primary;
 }
