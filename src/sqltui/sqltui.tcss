@@ -1,5 +1,14 @@
 $heavy-border: heavy $primary;
 
+#header {
+  dock: top;
+  height: 1;
+  color: $primary;
+  text-style: bold;
+  text-align: center;
+  margin: 1 1 0 1;
+}
+
 #input_query {
     height: auto;
     min-height: 30;
@@ -8,15 +17,15 @@ $heavy-border: heavy $primary;
 
 LeftPanel {
     padding: 1;
-	margin: 2;
+    margin: 1 2 2 2;
 	border: $heavy-border;
 	border_title_align: left;
     height: 100%;
 }
 
-RightPanel {
+DataTable {
     padding: 1;
-	margin: 2;
+    margin: 1 2 2 2;
 	border: $heavy-border;
 	border_title_align: left;
     height: 100%;
@@ -39,8 +48,9 @@ RightPanel {
 }
 
 #select_project {
-    width: 20%;
-    margin: 2;
+    height: 5;
+    width: 100%;
+    margin: 1 2 0 2;
     border: $heavy-border;
     border_title_align: left;
 }
@@ -55,4 +65,8 @@ ButtomButtons {
 
 Button:hover {
   outline: $primary;
+}
+
+#main_area {
+    width: 100%;
 }

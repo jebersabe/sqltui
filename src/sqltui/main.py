@@ -2,8 +2,8 @@ from textual import on
 import pandas as pd
 import multiprocessing
 from textual.app import App, ComposeResult
-from textual.widgets import Footer, Header, TextArea, DataTable, Button, Select
-from textual.containers import Horizontal, Vertical, VerticalScroll
+from textual.widgets import Footer, Static, TextArea, DataTable, Button, Select
+from textual.containers import Horizontal, Vertical, VerticalScroll, HorizontalGroup
 from sqltui.backend import odps_from_env, load_config
 import logging
 from textual.logging import TextualHandler
@@ -14,7 +14,7 @@ logger.addHandler(TextualHandler())
 logger.setLevel(logging.INFO)
 
 
-class ButtomButtons(Horizontal):
+class ButtomButtons(HorizontalGroup):
     def compose(self):
         yield Button("Run", variant="default", id="run")
         yield Button("Check Partitions", variant="default", id="check_pt")
@@ -30,11 +30,6 @@ class LeftPanel(VerticalScroll):
         yield ButtomButtons()
 
 
-class RightPanel(Vertical):
-    def compose(self):
-        yield DataTable()
-
-
 class SqlTUI(App):
     """A Textual app to manage stopwatches."""
 
@@ -44,6 +39,7 @@ class SqlTUI(App):
         ("ctrl+l", "clear_query", "Clear"),
     ]
     CSS_PATH = "sqltui.tcss"
+    TITLE = "SQLTUI"
 
     def __init__(self):
         super().__init__()
@@ -55,11 +51,11 @@ class SqlTUI(App):
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
         with Vertical():
-            yield Header()
+            yield Static("SQLTUI", id="header")
             yield Select(self.project_options, id="select_project")
-            with Horizontal():
+            with Horizontal(id="main_area"):
                 yield LeftPanel(id="left_panel")
-                yield RightPanel(id="right_panel")
+                yield DataTable(id="right_panel")
             yield Footer()
 
     def action_run_query(self) -> None:
@@ -183,6 +179,9 @@ class SqlTUI(App):
     @on(Select.Changed, "#select_project")
     def select_changed(self, event: Select.Changed) -> None:
         self.selected_project = str(event.value)
+        if event.value == Select.BLANK:
+            self.app.notify("No project selected", title="INFO", severity="info")
+            return
 
         match_projects = [
             project
