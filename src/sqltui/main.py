@@ -4,7 +4,6 @@ import multiprocessing
 from textual.app import App, ComposeResult
 from textual.widgets import Footer, Static, TextArea, DataTable, Button, Select
 from textual.containers import Horizontal, Vertical, VerticalScroll, HorizontalGroup
-from sqltui.backend import odps_from_env, load_config
 import logging
 from textual.logging import TextualHandler
 

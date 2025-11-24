@@ -11,7 +11,7 @@ $heavy-border: heavy $primary;
 
 #input_query {
     height: auto;
-    min-height: 30;
+    min-height: 20;
 	border: round $secondary;
 }
 
