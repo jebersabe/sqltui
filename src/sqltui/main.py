@@ -1,9 +1,10 @@
+import asyncio
 from textual import on
-import pandas as pd
 import multiprocessing
 from textual.app import App, ComposeResult
 from textual.widgets import Footer, Static, TextArea, DataTable, Button, Select
 from textual.containers import Horizontal, Vertical, VerticalScroll, HorizontalGroup
+from sqltui.backend import odps_from_env, load_config, async_wrapper_run_sql 
 import logging
 from textual.logging import TextualHandler
 
@@ -96,38 +97,48 @@ class SqlTUI(App):
             ]
             select_widget.set_options(self.project_options)
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "run":
-            table = self.query_one(DataTable)
-            table.clear(columns=True)
-            query = self.query_one(TextArea)
-            query_text = query.text.strip()
+    @on(Button.Pressed, "#run")
+    async def run_query(self):
+        table = self.query_one(DataTable)
+        table.clear(columns=True)
+        query = self.query_one(TextArea)
+        query_text = query.text.strip()
 
-            if not self.selected_project:
-                self.app.notify(
-                    "No project selected. Please select a project from the dropdown.",
-                    title="WARNING",
-                    severity="warning",
-                )
-                return
+        if not self.selected_project:
+            self.app.notify(
+                "No project selected. Please select a project from the dropdown.",
+                title="WARNING",
+                severity="warning",
+            )
+            return
 
-            if query_text:
-                table.loading = True
-                self.load_data(query_text, table)
-                table.loading = False
+        if query_text:
+            table.loading = True
+            self.load_data(query_text, table)
+            table.loading = False
 
-        if event.button.id == "clear":
-            text_area = self.query_one(TextArea)
-            table = self.query_one(DataTable)
-            text_area.clear()
+    @on(Button.Pressed, "#clear")
+    def clear_text_editor(self):
+        text_area = self.query_one(TextArea)
+        text_area.clear()
 
-        if event.button.id == "exit":
-            self.exit()
+    @on(Button.Pressed, "#exit")
+    def exit_app(self):
+        self.exit()
 
-        if event.button.id == "check_pt":
-            self.check_partition()
+    @on(Button.Pressed, "#check_pt")
+    def check_table_pt(self):
+        if not self.selected_project:
+            self.app.notify(
+                "No project selected. Please select a project from the dropdown.",
+                title="WARNING",
+                severity="warning",
+            )
+            return
 
-    def load_data(self, query: str, data_table: DataTable) -> pd.DataFrame:
+        self.check_partition()
+
+    def load_data(self, query: str, data_table: DataTable) -> None:
         n_process = multiprocessing.cpu_count()
         try:
             instance = self.o.execute_sql(query)
