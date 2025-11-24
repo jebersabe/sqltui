@@ -1,10 +1,10 @@
-import asyncio
 from textual import on
 import multiprocessing
+from textual import work
 from textual.app import App, ComposeResult
 from textual.widgets import Footer, Static, TextArea, DataTable, Button, Select
 from textual.containers import Horizontal, Vertical, VerticalScroll, HorizontalGroup
-from sqltui.backend import odps_from_env, load_config, async_wrapper_run_sql 
+from sqltui.backend import odps_from_env, load_config
 import logging
 from textual.logging import TextualHandler
 
@@ -138,7 +138,8 @@ class SqlTUI(App):
 
         self.check_partition()
 
-    def load_data(self, query: str, data_table: DataTable) -> None:
+    @work(exclusive=True, thread=True)
+    async def load_data(self, query: str, data_table: DataTable) -> None:
         n_process = multiprocessing.cpu_count()
         try:
             instance = self.o.execute_sql(query)
