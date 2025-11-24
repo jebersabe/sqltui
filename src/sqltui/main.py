@@ -127,7 +127,7 @@ class SqlTUI(App):
         self.exit()
 
     @on(Button.Pressed, "#check_pt")
-    def check_table_pt(self):
+    async def check_table_pt(self):
         if not self.selected_project:
             self.app.notify(
                 "No project selected. Please select a project from the dropdown.",
@@ -155,7 +155,8 @@ class SqlTUI(App):
                 f"Encountered error: {str(e)[:500]}", title="ERROR", severity="error"
             )
 
-    def check_partition(self) -> None:
+    @work(exclusive=True, thread=True)
+    async def check_partition(self) -> None:
         table_name = self.query_one(TextArea).text.strip()
         if not table_name:
             return
