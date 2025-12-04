@@ -15,7 +15,10 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "black>=25.11.0",
+    "marimo>=0.18.0",
     "textual-dev>=1.8.0",
+    "pyzmq>=27.1.0",
 ]
 
 [build-system]

@@ -5,8 +5,15 @@ from textual.app import App, ComposeResult
 from textual.widgets import Footer, Static, TextArea, DataTable, Button, Select
 from textual.containers import Horizontal, Vertical, VerticalScroll, HorizontalGroup
 from sqltui.backend import odps_from_env, load_config
+from sqltui.crud import (
+    initialize_database,
+    insert_query,
+    fetch_queries,
+    delete_database,
+)
 import logging
 from textual.logging import TextualHandler
+from pathlib import Path
 
 
 logger = logging.getLogger(__name__)
@@ -17,7 +24,8 @@ logger.setLevel(logging.INFO)
 class ButtomButtons(HorizontalGroup):
     def compose(self):
         yield Button("Run", variant="default", id="run")
-        yield Button("Check Partitions", variant="default", id="check_pt")
+        yield Button("Partitions", variant="default", id="check_pt")
+        yield Button("Schema", variant="default", id="schema_button")
         yield Button("Clear", variant="default", id="clear")
         yield Button("Exit", variant="default", id="exit")
 
@@ -47,12 +55,16 @@ class SqlTUI(App):
         self.project_options = [("", "")]
         self.projects = []
         self.selected_project = ""
+        self.past_queries = []
+        self.query_options = [("", "")]
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
         with Vertical():
             yield Static("SQLTUI", id="header")
-            yield Select(self.project_options, id="select_project")
+            with Horizontal(id="select_horizontal_container"):
+                yield Select(self.project_options, id="select_query")
+                yield Select(self.project_options, id="select_project")
             with Horizontal(id="main_area"):
                 yield LeftPanel(id="left_panel")
                 yield DataTable(id="right_panel")
@@ -78,30 +90,49 @@ class SqlTUI(App):
         right_panel_wid = self.get_widget_by_id("right_panel")
         right_panel_wid.border_title = "RESULT"
 
-        text_area_wid = self.get_widget_by_id("input_query")
-        text_area_wid.focus()
+        select_widget_project = self.get_widget_by_id("select_project")
+        select_widget_project.focus()
+        select_widget_project.border_title = "PROJECT"
 
-        select_widget = self.get_widget_by_id("select_project")
-        select_widget.border_title = "PROJECT"
+        select_widget_query = self.get_widget_by_id("select_query")
+        select_widget_query.border_title = "HISTORY"
+
+        # Initialize database if it doesn't exist
+        db_path = Path("queries.db")
+        if not db_path.exists():
+            initialize_database()
+
+        self.past_queries = dict.fromkeys(fetch_queries())
+        self.query_options = [(q[0][:100], q[0]) for q in self.past_queries]
+        select_widget_query.set_options(self.query_options)
 
         try:
             self.projects = load_config("config.yaml")["projects"]
         except FileNotFoundError:
             logger.error("config.yaml not found. Please create the config file.")
-            raise FileNotFoundError(
-                "config.yaml not found. Please create the config file."
+            self.app.notify(
+                "config.yaml not found. Please create the config file.",
+                title="ERROR",
+                severity="error",
             )
         else:
             self.project_options = [
                 (proj["name"], proj["name"]) for proj in self.projects
             ]
-            select_widget.set_options(self.project_options)
+            select_widget_project.set_options(self.project_options)
+
+    @on(Button.Pressed, "#schema_button")
+    async def show_schema(self):
+        data_table = self.query_one(DataTable)
+        data_table.clear(columns=True)
+        data_table.loading = True
+        self.get_schema(data_table)
 
     @on(Button.Pressed, "#run")
     async def run_query(self):
         table = self.query_one(DataTable)
         table.clear(columns=True)
-        query = self.query_one(TextArea)
+        query = self.query_one("#input_query")
         query_text = query.text.strip()
 
         if not self.selected_project:
@@ -115,11 +146,10 @@ class SqlTUI(App):
         if query_text:
             table.loading = True
             self.load_data(query_text, table)
-            table.loading = False
 
     @on(Button.Pressed, "#clear")
     def clear_text_editor(self):
-        text_area = self.query_one(TextArea)
+        text_area = self.query_one("#input_query")
         text_area.clear()
 
     @on(Button.Pressed, "#exit")
@@ -136,10 +166,16 @@ class SqlTUI(App):
             )
             return
 
-        self.check_partition()
+        data_table = self.query_one(DataTable)
+        data_table.loading = True
+        self.check_partition(data_table)
 
     @work(exclusive=True, thread=True)
     async def load_data(self, query: str, data_table: DataTable) -> None:
+        if "limit" not in query.lower():
+            pass
+        insert_query(query)
+        self.refresh_history()
         n_process = multiprocessing.cpu_count()
         try:
             instance = self.o.execute_sql(query)
@@ -154,13 +190,17 @@ class SqlTUI(App):
             self.app.notify(
                 f"Encountered error: {str(e)[:500]}", title="ERROR", severity="error"
             )
+        finally:
+            data_table.loading = False
 
     @work(exclusive=True, thread=True)
-    async def check_partition(self) -> None:
-        table_name = self.query_one(TextArea).text.strip()
+    async def check_partition(self, data_table) -> None:
+        table_name = self.query_one("#input_query").text.strip()
+        insert_query(table_name)
+        self.refresh_history()
         if not table_name:
+            data_table.loading = False
             return
-        data_table = self.query_one(DataTable)
         data_table.clear(columns=True)
 
         # catch error when checking for table existence
@@ -171,6 +211,8 @@ class SqlTUI(App):
                 f"Encountered error: {str(e)[:300]}", title="ERROR", severity="error"
             )
             return
+        finally:
+            data_table.loading = False
 
         if not table_exists:
             self.app.notify("Table does not exist", title="WARNING", severity="warning")
@@ -187,9 +229,55 @@ class SqlTUI(App):
                 f"Encountered error: {str(e)[:300]}", title="ERROR", severity="error"
             )
             return
+        finally:
+            data_table.loading = False
+
+    @work(exclusive=True, thread=True)
+    async def get_schema(self, data_table: DataTable):
+        if not self.selected_project:
+            self.app.notify("No project selected", title="WARNING", severity="warning")
+            data_table.loading = False
+            return
+
+        table_name = self.query_one("#input_query").text.strip()
+        insert_query(table_name)
+        self.refresh_history()
+        if not table_name:
+            self.app.notify(
+                "Please provide a table name", title="WARNING", severity="warning"
+            )
+            data_table.loading = False
+            return
+
+        try:
+            table_obj = self.o.get_table(table_name)
+            schema_obj = table_obj.schema
+        except Exception as e:
+            self.app.notify(
+                f"Encountered error: {str(e)[:300]}", title="ERROR", severity="error"
+            )
+            return
+        else:
+            columns = ["column", "type", "comment"]
+            rows = []
+            for schema in schema_obj:
+                rows.append((schema.name, schema.type, schema.comment))
+
+            data_table.add_columns(*columns)
+            data_table.add_rows(rows)
+        finally:
+            data_table.loading = False
+
+    @on(Select.Changed, "#select_query")
+    async def select_changed_query(self, event: Select.Changed) -> None:
+        if event.value == Select.BLANK:
+            return
+        selected_query = str(event.value)
+        text_area = self.query_one("#input_query")
+        text_area.text = selected_query
 
     @on(Select.Changed, "#select_project")
-    def select_changed(self, event: Select.Changed) -> None:
+    async def select_changed_project(self, event: Select.Changed) -> None:
         self.selected_project = str(event.value)
         if event.value == Select.BLANK:
             self.app.notify("No project selected", title="INFO", severity="info")
@@ -210,12 +298,21 @@ class SqlTUI(App):
             raise Exception("Selected project not found in config.yaml")
 
         project_dict = match_projects[0]
+        self.load_odps(project_dict)
 
+    @work(exclusive=True, thread=True)
+    async def load_odps(self, project_dict):
         self.o = odps_from_env(
             id_key=project_dict["access_key"],
             secret_key=project_dict["secret_key"],
             project=project_dict["name"],
         )
+
+    def refresh_history(self):
+        select_widget_query = self.get_widget_by_id("select_query")
+        self.past_queries = dict.fromkeys(fetch_queries())
+        self.query_options = [(q[0][:100], q[0]) for q in self.past_queries]
+        select_widget_query.set_options(self.query_options)
 
 
 if __name__ == "__main__":

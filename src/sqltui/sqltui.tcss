@@ -1,4 +1,4 @@
-$heavy-border: heavy $primary;
+$heavy-border: round $primary;
 
 #header {
   dock: top;
@@ -13,44 +13,43 @@ $heavy-border: heavy $primary;
     height: auto;
     min-height: 20;
 	border: round $secondary;
+    margin: 0 0 0 0;
 }
 
 LeftPanel {
     padding: 1;
-    margin: 1 2 2 2;
+    margin: 0 3 2 2;
 	border: $heavy-border;
 	border_title_align: left;
     height: 100%;
+	dock: left;
+	max_width: 50%;
 }
 
 DataTable {
     padding: 1;
-    margin: 1 2 2 2;
+    margin: 0 2 2 3;
 	border: $heavy-border;
 	border_title_align: left;
     height: 100%;
-}
-
-#run {
-    margin: 1;
-}
-
-#clear {
-    margin: 1;
-}
-
-#exit {
-    margin: 1;
-}
-
-#check_pt {
-    margin: 1;
+	dock: right;
+	max_width: 50%;
 }
 
 #select_project {
+    dock: right;
     height: 5;
-    width: 100%;
-    margin: 1 2 0 2;
+    width: 50%;
+    margin: 0 2 0 3;
+    border: $heavy-border;
+    border_title_align: left;
+}
+
+#select_query {
+    dock: left;
+    height: 5;
+    width: 50%;
+    margin: 0 3 0 2;
     border: $heavy-border;
     border_title_align: left;
 }
@@ -61,6 +60,10 @@ Vertical {
 
 ButtomButtons {
     align: center middle;
+    layout: grid;
+    grid-size: 5 1;
+    grid-columns: 1fr 1fr 1fr 1fr 1fr;
+	grid-rows: 3;
 }
 
 Button:hover {
@@ -68,5 +71,16 @@ Button:hover {
 }
 
 #main_area {
+    width: 100%;
+}
+
+Button {
+    width: 20;
+	height: 20;
+	margin: 0 1 0 1;
+}
+
+#select_horizontal_container {
+    height: 5;
     width: 100%;
 }

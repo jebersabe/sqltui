@@ -1,170 +1,101 @@
-# sqltui
+# SQLTUI
 
-A terminal-based SQL client for Alibaba Cloud MaxCompute (ODPS) built with [Textual](https://github.com/Textualize/textual). It provides a split-pane TUI for writing SQL, running queries, and exploring table partitions across multiple configured projects.
+SQLTUI is a Terminal User Interface (TUI) for executing SQL queries against Alibaba Cloud MaxCompute (ODPS). Built with [Textual](https://textual.textualize.io/), it provides a modern interface for data exploration directly from your terminal.
+
+![Terminal app](./tui.png)
 
 ## Features
 
-- Textual-based TUI with a query editor and results table
-- Project selector backed by a YAML config file
-- Execution of SQL queries against MaxCompute / ODPS
-- Display of query results in a scrollable table
-- Quick partition inspection for a given table
-- Keyboard shortcuts for common actions (run, clear, check partitions)
-
-## Requirements
-
-- Python >= 3.11
-- An Alibaba Cloud MaxCompute (ODPS) environment
-- Valid ODPS credentials available as environment variables
-- A `config.yaml` file in the project root defining available projects
-
-The core dependencies (managed via `pyproject.toml`) include:
-
-- `textual[syntax]`
-- `pandas`
-- `pyodps`
-- `python-dotenv`
-- `pyyaml`
+- **SQL Editor**: Syntax highlighting for SQL queries.
+- **Multi-Project Support**: Easily switch between different ODPS projects.
+- **Result Visualization**: View query results in a scrollable data table.
+- **Schema Inspection**: View table schemas.
+- **Partition Checking**: Quickly check partitions for tables.
+- **Query History**: Query history is saved persistently for quick access.
+- **Keyboard Shortcuts**: Efficient navigation and execution using keyboard bindings.
 
 ## Installation
 
-This project is set up for use with [uv](https://github.com/astral-sh/uv) and standard PEP 621 metadata.
-
-### Option 1: Install as a package
-
-From the project root:
+Ensure you have Python 3.11 or higher installed.
 
 ```bash
-uv sync
-uv run sqltui
+pip install <gitlab_url>
 ```
-
-This will install dependencies and run the `sqltui` entry point defined in `pyproject.toml`.
-
-### Option 2: Run directly with Textual dev
-
-From the project root, in development mode:
-
-```bash
-uv sync
-uv run textual run --dev src/sqltui/__main__.py
-```
-
-This runs the app with Textual's dev tools (hot reload, debug console, etc.).
 
 ## Configuration
 
-Two configuration layers are used:
+SQLTUI requires a `config.yaml` file in the directory where you run the application. It also relies on environment variables for secure credential management.
 
-1. **Environment variables** for ODPS credentials
-2. **`config.yaml`** for project definitions
+### 1. `config.yaml`
 
-### Environment variables
-
-Credentials are loaded via `python-dotenv`, so you can either export them in your shell or define them in a `.env` file at the project root.
-
-For each project, the `config.yaml` refers to keys that are the *names* of the environment variables storing the actual secrets. For example:
-
-- `access_key`: the name of the env var holding the ODPS access ID (e.g. `ODPS_ACCESS_ID_DEV`)
-- `secret_key`: the name of the env var holding the ODPS secret key (e.g. `ODPS_ACCESS_KEY_DEV`)
-
-Example `.env` file:
-
-```env
-ODPS_ACCESS_ID_DEV=your_access_id_here
-ODPS_ACCESS_KEY_DEV=your_secret_here
-ODPS_ACCESS_ID_PROD=your_access_id_here
-ODPS_ACCESS_KEY_PROD=your_secret_here
-```
-
-### `config.yaml`
-
-The app expects a `config.yaml` in the project root directory. It must contain a top-level `projects` list. Each project entry should have at least:
-
-- `name`: ODPS project name (also the label in the TUI project selector)
-- `access_key`: env var name for the access ID
-- `secret_key`: env var name for the secret key
-
-Example `config.yaml`:
+Create a `config.yaml` file with your project definitions:
 
 ```yaml
 projects:
-  - name: dev_project
-    access_key: ODPS_ACCESS_ID_DEV
-    secret_key: ODPS_ACCESS_KEY_DEV
-  - name: prod_project
-    access_key: ODPS_ACCESS_ID_PROD
-    secret_key: ODPS_ACCESS_KEY_PROD
+  - name: my_project_name
+    access_key: ENV_VAR_FOR_ACCESS_KEY_ID
+    secret_key: ENV_VAR_FOR_ACCESS_KEY_SECRET
+    endpoint: https://endpoint.com/api
+  - name: another_project
+    access_key: ANOTHER_ENV_VAR_ID
+    secret_key: ANOTHER_ENV_VAR_SECRET
+    endpoint: https://endpoint.com/api
 ```
 
-If `config.yaml` is missing, the app will log an error and raise a `FileNotFoundError` on startup.
+### 2. Environment Variables
+
+Create a `.env` file (or set environment variables in your shell) matching the keys defined in your `config.yaml`.
+
+```bash
+# .env file
+ENV_VAR_FOR_ACCESS_KEY_ID=your_actual_access_key_id
+ENV_VAR_FOR_ACCESS_KEY_SECRET=your_actual_access_key_secret
+ANOTHER_ENV_VAR_ID=...
+ANOTHER_ENV_VAR_SECRET=...
+```
 
 ## Usage
 
-Once installed and configured:
+Run the application from the terminal:
 
 ```bash
-uv run sqltui
+sqltui
 ```
 
-### Layout
+### Keybindings
 
-- **Top bar**: Textual header and a project selector (`Select`) showing the configured projects.
-- **Left panel**: SQL query editor (`TextArea`) with syntax highlighting.
-- **Bottom of left panel**: Action buttons: `Run`, `Check Partitions`, `Clear`, and `Exit`.
-- **Right panel**: Results table (`DataTable`) showing query results or partition lists.
-- **Bottom bar**: Textual footer with helpful key binding hints.
+| Key | Action |
+| :--- | :--- |
+| `Ctrl+Enter` | Run Query |
+| `Ctrl+t` | Check Partitions |
+| `Ctrl+l` | Clear Query Editor |
+| `Ctrl+c` | Quit |
 
-### Keyboard shortcuts
+### Interface
 
-- `Ctrl+Enter` — Run current query
-- `Ctrl+T` — Check partitions for the given table
-- `Ctrl+L` — Clear the query editor
-
-### Actions
-
-- **Selecting a project**: Use the dropdown at the top to choose an ODPS project. The app uses the corresponding credentials to create an `ODPS` client.
-- **Running a query**:
-  - Type (or paste) a SQL query into the left-hand editor.
-  - Press `Ctrl+Enter` or click **Run**.
-  - Results will be loaded into the right-hand `DataTable`.
-- **Checking partitions**:
-  - Enter a table name (e.g. `my_db.my_table`) in the editor.
-  - Press `Ctrl+T` or click **Check Partitions**.
-  - The app checks if the table exists and then lists its partitions in the results panel.
-- **Clearing**: Press `Ctrl+L` or click **Clear** to clear the editor.
-- **Exiting**: Click **Exit** or close the terminal window.
-
-### Error handling
-
-- If no project is selected when you try to run a query, the app shows an in-app warning notification.
-- Most ODPS-related issues (invalid credentials, connectivity, missing tables) are caught and displayed as error notifications with truncated messages.
+- **Top Bar**: Select the active project.
+- **Left Panel**: SQL Editor. Type your query here.
+- **Right Panel**: Results view.
+- **Bottom Buttons**:
+    - **Run**: Execute the query.
+    - **Partitions**: Check partitions for the table in the query.
+    - **Schema**: View schema for the table.
+    - **Clear**: Clear the editor.
+    - **Exit**: Close the application.
 
 ## Development
 
-The main application class is `SqlTUI` in `src/sqltui/main.py`. Supporting pieces include:
+To set up the development environment:
 
-- `src/sqltui/__main__.py` — entry point for the Textual app and the `sqltui` console script.
-- `src/sqltui/backend.py` — helpers for creating an `ODPS` instance from environment variables and loading YAML config.
-- `src/sqltui/sqltui.tcss` — Textual CSS theme and layout configuration.
-
-### Running in dev mode
-
-From the project root:
+1. Clone the repository.
+2. Install dependencies (using a virtual environment is recommended):
 
 ```bash
-uv run textual run --dev src/sqltui/__main__.py
+pip install -e ".[dev]"
 ```
 
-You can then modify the app code and see changes reflected live while the dev server is running.
+3. Run the application:
 
-## Troubleshooting
-
-- **`config.yaml not found`**: Ensure that `config.yaml` exists in the project root and matches the expected schema shown above.
-- **Credentials not working**: Confirm that the env var names in `config.yaml` match actual variables set in your shell or `.env` file.
-- **No projects populated in the selector**: Check that `projects` is a non-empty list in `config.yaml` and that YAML indentation is correct.
-- **Connection/ODPS errors**: Inspect the terminal logs and in-app notifications for the underlying `pyodps` error messages.
-
-## License
-
-Apache
+```bash
+python -m sqltui
+```
