@@ -9,7 +9,6 @@ from sqltui.crud import (
     initialize_database,
     insert_query,
     fetch_queries,
-    delete_database,
 )
 import logging
 from textual.logging import TextualHandler
