@@ -19,7 +19,7 @@ SQLTUI is a Terminal User Interface (TUI) for executing SQL queries against Alib
 Ensure you have Python 3.11 or higher installed.
 
 ```bash
-pip install <gitlab_url>
+pip install <github_url>
 ```
 
 ## Configuration
